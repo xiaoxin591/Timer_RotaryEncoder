@@ -60,8 +60,8 @@ all: main-build
 main-build: Timer_RotaryEncoder.elf secondary-outputs
 
 # Tool invocations
-Timer_RotaryEncoder.elf Timer_RotaryEncoder.map: $(OBJS) $(USER_OBJS) C:\Users\Xi\Desktop\Timer_RotaryEncoder\ -\ -\ 副本\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Timer_RotaryEncoder.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\Xi\Desktop\Timer_RotaryEncoder - - 副本\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Timer_RotaryEncoder.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Timer_RotaryEncoder.elf Timer_RotaryEncoder.map: $(OBJS) $(USER_OBJS) C:\Users\HP\Desktop\模型\Timer_RotaryEncoder\ -\ 副本\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Timer_RotaryEncoder.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\HP\Desktop\模型\Timer_RotaryEncoder - 副本\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Timer_RotaryEncoder.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

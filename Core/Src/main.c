@@ -66,18 +66,18 @@ uint32_t last_motion_time = 0;
 uint32_t servo_run_end_time = 0;
 uint32_t servo_motion_time = 5000; // 默认运动周期5秒
 uint16_t servo_angle_range = 90;   // 默认角度范围90度
-uint32_t servo_start_time = 0;
+// uint32_t servo_start_time = 0; // Unused
 uint16_t servo_run_duration = 10;  // 默认运行时间10分钟
 uint8_t setting_mode = 1;          // 默认进入设置模式
 
 uint16_t bluetooth_angle = 0;
 uint8_t bluetooth_angle_valid = 0;
 uint16_t bluetooth_time = 0;
-uint8_t bluetooth_time_valid = 0;
+// uint8_t bluetooth_time_valid = 0; // Unused
 uint16_t bluetooth_speed = 0;
-uint8_t bluetooth_speed_valid = 0;
+// uint8_t bluetooth_speed_valid = 0; // Unused
 
-uint8_t receiveDate[50]; // DMA接收缓冲
+uint8_t receiveData[50]; // DMA接收缓冲
 uint16_t current_count = 0;
 /* USER CODE END PV */
 
@@ -183,13 +183,13 @@ void UpdateServoPosition(void)
 void ParseBluetoothData(uint8_t* data, uint16_t size)
 {
     // 确保数据以null结尾
-    if(size < sizeof(receiveDate))
+    if(size < sizeof(receiveData))
     {
         data[size] = '\0';
     }
     else
     {
-        data[sizeof(receiveDate)-1] = '\0';
+        data[sizeof(receiveData)-1] = '\0';
     }
     
     // 移除换行符和回车符
@@ -264,7 +264,7 @@ void ParseBluetoothData(uint8_t* data, uint16_t size)
         if(value >= 1 && value <= 60)
         {
             bluetooth_time = (uint16_t)value;
-            bluetooth_time_valid = 1;
+            // bluetooth_time_valid = 1;
             servo_run_duration = bluetooth_time;
             
             char ack_msg[50];
@@ -282,7 +282,7 @@ void ParseBluetoothData(uint8_t* data, uint16_t size)
         if(value >= 1 && value <= 10)
         {
             bluetooth_speed = (uint16_t)value;
-            bluetooth_speed_valid = 1;
+            // bluetooth_speed_valid = 1;
             servo_motion_time = bluetooth_speed * 1000;
             
             char ack_msg[50];
@@ -356,8 +356,10 @@ int main(void)
   MX_USART3_UART_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart3, receiveDate, sizeof(receiveDate));
-    __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
+    // 启动DMA接收 (IDLE中断模式)
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart3, receiveData, sizeof(receiveData));
+    __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT); // 禁用半传输中断，防止干扰
+    
     HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
     OLED_Init();
     HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
@@ -559,42 +561,6 @@ int main(void)
         
         OLED_ShowFrame();
         
-        // 蓝牙接收测试（轮询方式）
-        static uint8_t bt_buffer[20];
-        static uint8_t bt_index = 0;
-        static uint32_t last_bt_check = 0;
-        
-        // 每10ms检查一次蓝牙接收
-        if(HAL_GetTick() - last_bt_check > 10)
-        {
-            last_bt_check = HAL_GetTick();
-            
-            uint8_t received_char;
-            if(HAL_UART_Receive(&huart3, &received_char, 1, 1) == HAL_OK)
-            {
-                if(received_char == '\r' || received_char == '\n')
-                {
-                    if(bt_index > 0)
-                    {
-                        bt_buffer[bt_index] = '\0';
-                        // 移除蓝牙接收显示，直接解析
-                        ParseBluetoothData(bt_buffer, bt_index);
-                    }
-                    bt_index = 0;
-                }
-                else if(bt_index < 19)
-                {
-                    bt_buffer[bt_index] = received_char;
-                    bt_index++;
-                }
-                else
-                {
-                    // 缓冲区满，重置
-                    bt_index = 0;
-                }
-            }
-        }
-        
         // 简单延时
         HAL_Delay(1);
     }
@@ -645,7 +611,19 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+// UART接收回调函数 (IDLE中断)
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+    if (huart->Instance == USART3)
+    {
+        // 处理接收到的数据
+        ParseBluetoothData(receiveData, Size);
+        
+        // 重新启动DMA接收
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart3, receiveData, sizeof(receiveData));
+        __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT); // 再次禁用半传输中断
+    }
+}
 /* USER CODE END 4 */
 
 /**
